@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PDF Presenter</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body class="presenter">
+    <header class="toolbar">
+      <button id="openPdfButton" class="text-button">Open PDF</button>
+      <div class="divider"></div>
+      <button id="previousButton" class="icon-button" title="Previous page" disabled>&larr;</button>
+      <span id="pageStatus" class="page-status">No PDF open</span>
+      <button id="nextButton" class="icon-button" title="Next page" disabled>&rarr;</button>
+      <div class="divider"></div>
+      <div class="tool-toggle" role="group" aria-label="Annotation tool">
+        <button class="tool-button active" data-tool="pointer" type="button">Pointer</button>
+        <button class="tool-button" data-tool="line" type="button">Line</button>
+        <button class="tool-button" data-tool="rectangle" type="button">Rectangle</button>
+      </div>
+      <button id="clearAnnotationsButton" class="text-button" type="button" disabled>Clear</button>
+      <div class="spacer"></div>
+      <select id="displaySelect" disabled></select>
+      <button id="presentButton" class="text-button" disabled>Present full screen</button>
+      <button id="stopButton" class="text-button danger" hidden>Stop presenting</button>
+    </header>
+
+    <main class="pdf-stage">
+      <section id="emptyState" class="empty-state">
+        <h1>Open a PDF to present</h1>
+        <p id="emptyStateMessage">Use the button above or File &gt; Open PDF.</p>
+      </section>
+      <div id="slideSurface" class="slide-surface" hidden>
+        <canvas id="pdfCanvas"></canvas>
+        <svg id="annotationLayer" class="annotation-layer" viewBox="0 0 1000 1000" preserveAspectRatio="none"></svg>
+        <div id="laserPointer" class="laser-pointer" hidden></div>
+      </div>
+    </main>
+
+    <script type="module" src="./viewer.js"></script>
+  </body>
+</html>

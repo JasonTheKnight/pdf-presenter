@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PDF Presentation</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body class="presentation">
+    <main class="presentation-stage">
+      <div id="slideSurface" class="slide-surface">
+        <canvas id="pdfCanvas"></canvas>
+        <svg id="annotationLayer" class="annotation-layer" viewBox="0 0 1000 1000" preserveAspectRatio="none"></svg>
+        <div id="laserPointer" class="laser-pointer" hidden></div>
+      </div>
+    </main>
+    <script type="module" src="./viewer.js"></script>
+  </body>
+</html>
