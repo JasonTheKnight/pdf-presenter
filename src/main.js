@@ -237,6 +237,13 @@ function startPresentation(displayId, page) {
 
   presentationWindow.loadFile(path.join(__dirname, 'renderer', 'presentation.html'));
 
+  presentationWindow.webContents.on('before-input-event', (event, input) => {
+    if (input.type === 'keyDown' && input.key === 'Escape') {
+      event.preventDefault();
+      closePresentationWindow();
+    }
+  });
+
   presentationWindow.once('ready-to-show', () => {
     let payloadSent = false;
     const sendInitialPayload = () => {

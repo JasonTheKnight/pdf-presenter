@@ -1,0 +1,11 @@
+#!/bin/sh
+APP_DIR="/Users/jason/Documents/pdf-presenter"
+ELECTRON_BIN="$APP_DIR/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron"
+
+if [ ! -x "$ELECTRON_BIN" ]; then
+  osascript -e 'display alert "PDF Presenter" message "Dependencies are not installed yet. Run npm install in the project folder first." as warning'
+  exit 1
+fi
+
+unset ELECTRON_RUN_AS_NODE
+exec "$ELECTRON_BIN" "$APP_DIR"

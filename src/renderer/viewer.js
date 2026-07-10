@@ -385,7 +385,8 @@ window.addEventListener('keydown', (event) => {
     goToPage(currentPage + 1);
   }
 
-  if (event.key === 'Escape' && isPresenter && isPresenting) {
+  if (event.key === 'Escape' && (isPresenting || !isPresenter)) {
+    event.preventDefault();
     window.pdfPresenter.stopPresentation();
   }
 });
