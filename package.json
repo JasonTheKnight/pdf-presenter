@@ -18,6 +18,6 @@
     "pdfjs-dist": "^4.10.38"
   },
   "devDependencies": {
-    "electron": "31.7.7"
+    "electron": "43.2.0"
   }
 }
