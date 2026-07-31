@@ -11,6 +11,7 @@ let currentPdfPath = null;
 let currentPage = 1;
 let currentPdfPageCount = 0;
 let annotations = [];
+let notes = {};
 
 async function fileExists(filePath) {
   try {
@@ -67,6 +68,18 @@ function createMenu() {
       ]
     },
     {
+      label: 'Edit',
+      submenu: [
+        { role: 'undo' },
+        { role: 'redo' },
+        { type: 'separator' },
+        { role: 'cut' },
+        { role: 'copy' },
+        { role: 'paste' },
+        { role: 'selectAll' }
+      ]
+    },
+    {
       label: 'View',
       submenu: [
         { role: 'reload' },
@@ -111,6 +124,62 @@ async function getPdfDetails(filePath, page) {
   };
 }
 
+function getNotesPath(filePath = currentPdfPath) {
+  if (!filePath) return null;
+
+  const parsedPath = path.parse(filePath);
+  return path.join(parsedPath.dir, `${parsedPath.name}.json`);
+}
+
+function normalizeNotes(candidate) {
+  if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) {
+    return {};
+  }
+
+  return Object.entries(candidate).reduce((normalized, [page, note]) => {
+    const pageNumber = Number(page);
+    if (Number.isInteger(pageNumber) && pageNumber > 0 && typeof note === 'string') {
+      normalized[String(pageNumber)] = note;
+    }
+
+    return normalized;
+  }, {});
+}
+
+async function loadNotes(filePath = currentPdfPath) {
+  const notesPath = getNotesPath(filePath);
+  if (!notesPath || !(await fileExists(notesPath))) {
+    notes = {};
+    return notes;
+  }
+
+  try {
+    const rawNotes = await fs.readFile(notesPath, 'utf8');
+    notes = normalizeNotes(JSON.parse(rawNotes));
+  } catch (error) {
+    console.warn(`Could not read notes file ${notesPath}:`, error);
+    notes = {};
+  }
+
+  return notes;
+}
+
+async function saveNotes() {
+  const notesPath = getNotesPath();
+  if (!notesPath) {
+    throw new Error('No PDF is open.');
+  }
+
+  const sortedNotes = Object.keys(notes)
+    .sort((left, right) => Number(left) - Number(right))
+    .reduce((sorted, page) => {
+      sorted[page] = notes[page];
+      return sorted;
+    }, {});
+
+  await fs.writeFile(notesPath, `${JSON.stringify(sortedNotes, null, 2)}\n`, 'utf8');
+}
+
 async function getSinglePagePdfUrl(filePath, page) {
   if (filePath !== currentPdfPath) {
     throw new Error('The requested PDF is not open in this app.');
@@ -147,6 +216,7 @@ async function openPdf(filePath, page, { notifyRenderer = true } = {}) {
   annotations = [];
 
   const payload = await getPdfDetails(filePath, page);
+  await loadNotes(filePath);
 
   if (notifyRenderer) {
     presenterWindow?.webContents.send('pdf:opened', payload);
@@ -192,6 +262,27 @@ function addAnnotation(annotation) {
 function clearAnnotations() {
   annotations = [];
   broadcastAnnotations();
+}
+
+async function setNote(page, note) {
+  if (!currentPdfPath) {
+    throw new Error('No PDF is open.');
+  }
+
+  const pageNumber = Math.max(1, Math.min(Number(page), currentPdfPageCount || Number(page)));
+  if (!Number.isFinite(pageNumber)) {
+    throw new Error('Invalid page number.');
+  }
+
+  const normalizedNote = String(note || '');
+  if (normalizedNote.trim()) {
+    notes[String(pageNumber)] = normalizedNote;
+  } else {
+    delete notes[String(pageNumber)];
+  }
+
+  await saveNotes();
+  return notes;
 }
 
 function getDisplayPayload() {
@@ -308,6 +399,8 @@ ipcMain.handle('laser:set-pointer', (_event, pointer) => setLaserPointer(pointer
 ipcMain.handle('annotations:add', (_event, annotation) => addAnnotation(annotation));
 ipcMain.handle('annotations:clear', () => clearAnnotations());
 ipcMain.handle('annotations:get', () => annotations);
+ipcMain.handle('notes:get', () => notes);
+ipcMain.handle('notes:set', (_event, { page, note }) => setNote(page, note));
 ipcMain.handle('pdf:read', async (_event, filePath) => {
   if (filePath !== currentPdfPath) {
     throw new Error('The requested PDF is not open in this app.');

@@ -22,6 +22,8 @@ const presentButton = document.getElementById('presentButton');
 const stopButton = document.getElementById('stopButton');
 const toolButtons = Array.from(document.querySelectorAll('.tool-button'));
 const clearAnnotationsButton = document.getElementById('clearAnnotationsButton');
+const notesEditor = document.getElementById('notesEditor');
+const notesSaveStatus = document.getElementById('notesSaveStatus');
 
 let pdfDocument = null;
 let pdfPath = null;
@@ -37,6 +39,9 @@ let laserFrame = null;
 let activeTool = 'pointer';
 let annotations = [];
 let draftAnnotation = null;
+let notes = {};
+let notesSaveTimer = null;
+let isUpdatingNotesEditor = false;
 
 function base64ToBytes(base64) {
   const binary = atob(base64);
@@ -68,7 +73,57 @@ function updatePresenterControls() {
   presentButton.hidden = isPresenting;
   stopButton.hidden = !isPresenting;
   if (clearAnnotationsButton) clearAnnotationsButton.disabled = !hasPdf || annotations.length === 0;
+  if (notesEditor) notesEditor.disabled = !hasPdf;
+  updateNotesEditor();
   pageStatus.textContent = hasPdf ? `${pdfName} - ${currentPage} / ${pageCount}` : 'No PDF open';
+}
+
+function setNotesSaveStatus(status) {
+  if (!notesSaveStatus) return;
+
+  notesSaveStatus.textContent = status;
+}
+
+function updateNotesEditor() {
+  if (!isPresenter || !notesEditor) return;
+
+  isUpdatingNotesEditor = true;
+  notesEditor.value = pdfDocument ? notes[String(currentPage)] || '' : '';
+  isUpdatingNotesEditor = false;
+
+  if (!pdfDocument) {
+    setNotesSaveStatus('No PDF open');
+  } else {
+    setNotesSaveStatus(`Page ${currentPage}`);
+  }
+}
+
+async function refreshNotes() {
+  if (!isPresenter || !pdfPath) return;
+
+  notes = await window.pdfPresenter.getNotes();
+  updateNotesEditor();
+}
+
+function scheduleNoteSave() {
+  if (!isPresenter || !pdfDocument || !notesEditor) return;
+
+  const pageToSave = currentPage;
+  const noteToSave = notesEditor.value;
+  notes[String(pageToSave)] = noteToSave;
+  setNotesSaveStatus('Saving...');
+  clearTimeout(notesSaveTimer);
+  notesSaveTimer = setTimeout(async () => {
+    try {
+      notes = await window.pdfPresenter.setNote(pageToSave, noteToSave);
+      if (pageToSave === currentPage) {
+        setNotesSaveStatus(`Saved page ${pageToSave}`);
+      }
+    } catch (error) {
+      console.error(error);
+      setNotesSaveStatus('Could not save');
+    }
+  }, 350);
 }
 
 function showOpenError(error) {
@@ -254,6 +309,7 @@ async function loadPdf(payload) {
   pdfDocument = null;
   annotations = [];
   draftAnnotation = null;
+  notes = {};
   pdfPath = payload.path;
   pdfName = payload.name;
   currentPage = payload.page || 1;
@@ -268,12 +324,17 @@ async function loadPdf(payload) {
   const pdfData = base64ToBytes(await window.pdfPresenter.readPdf(pdfPath));
   pdfDocument = await pdfjsLib.getDocument({ data: pdfData }).promise;
   pageCount = pdfDocument.numPages;
+  await refreshNotes();
   await renderPage(currentPage);
 }
 
 function goToPage(page) {
   if (!pdfDocument) return;
   window.pdfPresenter.setPage(Math.max(1, Math.min(page, pageCount)));
+}
+
+function isEditableElement(element) {
+  return Boolean(element?.closest?.('textarea, input, select, [contenteditable="true"]'));
 }
 
 async function refreshDisplays() {
@@ -293,7 +354,9 @@ async function refreshDisplays() {
 function bindPresenterControls() {
   window.addEventListener(
     'pointerdown',
-    () => {
+    (event) => {
+      if (isEditableElement(event.target)) return;
+
       window.pdfPresenter.bringPresentationToFront();
     },
     true
@@ -318,6 +381,11 @@ function bindPresenterControls() {
   });
   clearAnnotationsButton.addEventListener('click', () => {
     window.pdfPresenter.clearAnnotations();
+  });
+  notesEditor.addEventListener('input', () => {
+    if (!isUpdatingNotesEditor) {
+      scheduleNoteSave();
+    }
   });
 
   slideSurface.addEventListener('pointermove', (event) => {
@@ -383,6 +451,8 @@ function bindPresenterControls() {
 }
 
 window.addEventListener('keydown', (event) => {
+  if (isEditableElement(event.target)) return;
+
   if (event.key === 'ArrowLeft' || event.key === 'PageUp') {
     event.preventDefault();
     goToPage(currentPage - 1);

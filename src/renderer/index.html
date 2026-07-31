@@ -26,16 +26,31 @@
       <button id="stopButton" class="text-button danger" hidden>Stop presenting</button>
     </header>
 
-    <main class="pdf-stage">
-      <section id="emptyState" class="empty-state">
-        <h1>Open a PDF to present</h1>
-        <p id="emptyStateMessage">Use the button above or File &gt; Open PDF.</p>
+    <main class="presenter-layout">
+      <section class="pdf-stage">
+        <section id="emptyState" class="empty-state">
+          <h1>Open a PDF to present</h1>
+          <p id="emptyStateMessage">Use the button above or File &gt; Open PDF.</p>
+        </section>
+        <div id="slideSurface" class="slide-surface" hidden>
+          <canvas id="pdfCanvas"></canvas>
+          <svg id="annotationLayer" class="annotation-layer" viewBox="0 0 1000 1000" preserveAspectRatio="none"></svg>
+          <div id="laserPointer" class="laser-pointer" hidden></div>
+        </div>
       </section>
-      <div id="slideSurface" class="slide-surface" hidden>
-        <canvas id="pdfCanvas"></canvas>
-        <svg id="annotationLayer" class="annotation-layer" viewBox="0 0 1000 1000" preserveAspectRatio="none"></svg>
-        <div id="laserPointer" class="laser-pointer" hidden></div>
-      </div>
+      <aside class="notes-panel" aria-label="Page notes">
+        <div class="notes-header">
+          <h2>Notes</h2>
+          <span id="notesSaveStatus" class="notes-save-status">No PDF open</span>
+        </div>
+        <textarea
+          id="notesEditor"
+          class="notes-editor"
+          placeholder="Notes for this page"
+          spellcheck="true"
+          disabled
+        ></textarea>
+      </aside>
     </main>
 
     <script type="module" src="./viewer.js"></script>

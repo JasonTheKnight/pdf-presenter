@@ -11,6 +11,8 @@ contextBridge.exposeInMainWorld('pdfPresenter', {
   addAnnotation: (annotation) => ipcRenderer.invoke('annotations:add', annotation),
   clearAnnotations: () => ipcRenderer.invoke('annotations:clear'),
   getAnnotations: () => ipcRenderer.invoke('annotations:get'),
+  getNotes: () => ipcRenderer.invoke('notes:get'),
+  setNote: (page, note) => ipcRenderer.invoke('notes:set', { page, note }),
   getPageUrl: (page) => ipcRenderer.invoke('pdf:get-page-url', page),
   readPdf: (filePath) => ipcRenderer.invoke('pdf:read', filePath),
   getState: () => ipcRenderer.invoke('pdf:get-state'),
