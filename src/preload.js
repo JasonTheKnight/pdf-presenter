@@ -5,6 +5,7 @@ contextBridge.exposeInMainWorld('pdfPresenter', {
   listDisplays: () => ipcRenderer.invoke('display:list'),
   startPresentation: (displayId, page) => ipcRenderer.invoke('presentation:start', { displayId, page }),
   stopPresentation: () => ipcRenderer.invoke('presentation:stop'),
+  bringPresentationToFront: () => ipcRenderer.invoke('presentation:bring-to-front'),
   setPage: (page) => ipcRenderer.invoke('pdf:set-page', page),
   setLaserPointer: (pointer) => ipcRenderer.invoke('laser:set-pointer', pointer),
   addAnnotation: (annotation) => ipcRenderer.invoke('annotations:add', annotation),

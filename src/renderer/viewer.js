@@ -291,6 +291,14 @@ async function refreshDisplays() {
 }
 
 function bindPresenterControls() {
+  window.addEventListener(
+    'pointerdown',
+    () => {
+      window.pdfPresenter.bringPresentationToFront();
+    },
+    true
+  );
+
   openPdfButton.addEventListener('click', async () => {
     try {
       const payload = await window.pdfPresenter.openPdf();

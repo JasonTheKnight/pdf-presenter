@@ -38,6 +38,10 @@ function createPresenterWindow() {
 
   presenterWindow.loadFile(path.join(__dirname, 'renderer', 'index.html'));
 
+  presenterWindow.on('focus', () => {
+    bringPresentationToFront();
+  });
+
   presenterWindow.on('closed', () => {
     presenterWindow = null;
     closePresentationWindow();
@@ -208,6 +212,16 @@ function closePresentationWindow() {
   presenterWindow?.webContents.send('presentation:stopped');
 }
 
+function bringPresentationToFront() {
+  if (!presentationWindow || presentationWindow.isDestroyed()) return;
+
+  if (!presentationWindow.isVisible()) {
+    presentationWindow.showInactive();
+  }
+
+  presentationWindow.moveTop();
+}
+
 function startPresentation(displayId, page) {
   if (!currentPdfPath) return;
 
@@ -224,6 +238,7 @@ function startPresentation(displayId, page) {
     width,
     height,
     frame: false,
+    fullscreenable: false,
     show: false,
     backgroundColor: '#111111',
     title: 'PDF Presentation',
@@ -259,11 +274,7 @@ function startPresentation(displayId, page) {
     };
 
     presentationWindow.show();
-    presentationWindow.setFullScreen(true);
-    presentationWindow.once('enter-full-screen', () => {
-      setTimeout(sendInitialPayload, 120);
-    });
-    setTimeout(sendInitialPayload, 500);
+    setTimeout(sendInitialPayload, 120);
     presenterWindow?.webContents.send('presentation:started');
   });
 
@@ -290,6 +301,7 @@ ipcMain.handle('dialog:open-pdf', () => openPdfDialog({ notifyRenderer: false })
 ipcMain.handle('display:list', () => getDisplayPayload());
 ipcMain.handle('presentation:start', (_event, { displayId, page }) => startPresentation(displayId, page));
 ipcMain.handle('presentation:stop', () => closePresentationWindow());
+ipcMain.handle('presentation:bring-to-front', () => bringPresentationToFront());
 ipcMain.handle('pdf:set-page', (_event, page) => setPage(page));
 ipcMain.handle('pdf:get-page-url', (_event, page) => getSinglePagePdfUrl(currentPdfPath, page));
 ipcMain.handle('laser:set-pointer', (_event, pointer) => setLaserPointer(pointer));
