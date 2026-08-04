@@ -330,6 +330,7 @@ function startPresentation(displayId, page) {
     height,
     frame: false,
     fullscreenable: false,
+    autoHideMenuBar: true,
     show: false,
     backgroundColor: '#111111',
     title: 'PDF Presentation',
@@ -365,6 +366,9 @@ function startPresentation(displayId, page) {
     };
 
     presentationWindow.show();
+    if (process.platform === 'darwin') {
+      presentationWindow.setSimpleFullScreen(true);
+    }
     setTimeout(sendInitialPayload, 120);
     presenterWindow?.webContents.send('presentation:started');
   });
