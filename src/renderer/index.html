@@ -10,6 +10,7 @@
     <header class="toolbar">
       <button id="openPdfButton" class="text-button">Open PDF</button>
       <div class="divider"></div>
+      <button id="firstButton" class="icon-button" title="First page" aria-label="First page" disabled>&laquo;</button>
       <button id="previousButton" class="icon-button" title="Previous page" disabled>&larr;</button>
       <span id="pageStatus" class="page-status">No PDF open</span>
       <button id="nextButton" class="icon-button" title="Next page" disabled>&rarr;</button>
@@ -22,6 +23,16 @@
       <button id="clearAnnotationsButton" class="text-button" type="button" disabled>Clear</button>
       <div class="spacer"></div>
       <select id="displaySelect" disabled></select>
+      <button
+        id="refreshDisplaysButton"
+        class="icon-button"
+        type="button"
+        title="Refresh screen list"
+        aria-label="Refresh screen list"
+        disabled
+      >
+        &#8635;
+      </button>
       <button id="presentButton" class="text-button" disabled>Present on screen</button>
       <button id="stopButton" class="text-button danger" hidden>Stop presenting</button>
     </header>

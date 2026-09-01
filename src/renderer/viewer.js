@@ -14,10 +14,12 @@ const laserPointer = document.getElementById('laserPointer');
 const emptyState = document.getElementById('emptyState');
 const emptyStateMessage = document.getElementById('emptyStateMessage');
 const openPdfButton = document.getElementById('openPdfButton');
+const firstButton = document.getElementById('firstButton');
 const previousButton = document.getElementById('previousButton');
 const nextButton = document.getElementById('nextButton');
 const pageStatus = document.getElementById('pageStatus');
 const displaySelect = document.getElementById('displaySelect');
+const refreshDisplaysButton = document.getElementById('refreshDisplaysButton');
 const presentButton = document.getElementById('presentButton');
 const stopButton = document.getElementById('stopButton');
 const toolButtons = Array.from(document.querySelectorAll('.tool-button'));
@@ -66,9 +68,11 @@ function updatePresenterControls() {
   if (!isPresenter) return;
 
   const hasPdf = Boolean(pdfDocument);
+  firstButton.disabled = !hasPdf || currentPage <= 1;
   previousButton.disabled = !hasPdf || currentPage <= 1;
   nextButton.disabled = !hasPdf || currentPage >= pageCount;
   displaySelect.disabled = !hasPdf;
+  refreshDisplaysButton.disabled = !hasPdf;
   presentButton.disabled = !hasPdf || isPresenting;
   presentButton.hidden = isPresenting;
   stopButton.hidden = !isPresenting;
@@ -340,6 +344,7 @@ function isEditableElement(element) {
 async function refreshDisplays() {
   if (!isPresenter) return;
 
+  const selectedDisplayId = displaySelect.value;
   const displays = await window.pdfPresenter.listDisplays();
   displaySelect.innerHTML = '';
 
@@ -349,6 +354,10 @@ async function refreshDisplays() {
     option.textContent = `${display.label}${display.isPrimary ? ' - primary' : ''}`;
     displaySelect.appendChild(option);
   });
+
+  if (selectedDisplayId && displays.some((display) => String(display.id) === selectedDisplayId)) {
+    displaySelect.value = selectedDisplayId;
+  }
 }
 
 function bindPresenterControls() {
@@ -370,8 +379,12 @@ function bindPresenterControls() {
       showOpenError(error);
     }
   });
+  firstButton.addEventListener('click', () => goToPage(1));
   previousButton.addEventListener('click', () => goToPage(currentPage - 1));
   nextButton.addEventListener('click', () => goToPage(currentPage + 1));
+  refreshDisplaysButton.addEventListener('click', () => {
+    refreshDisplays().catch(showOpenError);
+  });
   presentButton.addEventListener('click', () => {
     window.pdfPresenter.startPresentation(Number(displaySelect.value), currentPage);
   });
