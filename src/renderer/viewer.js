@@ -26,6 +26,10 @@ const toolButtons = Array.from(document.querySelectorAll('.tool-button'));
 const clearAnnotationsButton = document.getElementById('clearAnnotationsButton');
 const notesEditor = document.getElementById('notesEditor');
 const notesSaveStatus = document.getElementById('notesSaveStatus');
+const nextSlidePreview = document.getElementById('nextSlidePreview');
+const nextSlideCanvas = document.getElementById('nextSlideCanvas');
+const nextSlideMessage = document.getElementById('nextSlideMessage');
+const nextSlideStatus = document.getElementById('nextSlideStatus');
 
 let pdfDocument = null;
 let pdfPath = null;
@@ -34,6 +38,7 @@ let currentPage = 1;
 let pageCount = 0;
 let isPresenting = false;
 let renderRequestId = 0;
+let nextSlideRenderRequestId = 0;
 let resizeTimer = null;
 let lastLaserPointer = null;
 let pendingLaserPointer = null;
@@ -100,6 +105,66 @@ function updateNotesEditor() {
   } else {
     setNotesSaveStatus(`Page ${currentPage}`);
   }
+}
+
+async function renderNextSlide() {
+  if (!isPresenter || !nextSlideCanvas || !nextSlidePreview) return;
+
+  const requestId = ++nextSlideRenderRequestId;
+  const nextPage = currentPage + 1;
+
+  if (!pdfDocument) {
+    nextSlideCanvas.hidden = true;
+    nextSlideMessage.hidden = false;
+    nextSlideMessage.textContent = 'No PDF open';
+    nextSlideStatus.textContent = '';
+    return;
+  }
+
+  if (nextPage > pageCount) {
+    nextSlideCanvas.hidden = true;
+    nextSlideMessage.hidden = false;
+    nextSlideMessage.textContent = 'End of presentation';
+    nextSlideStatus.textContent = '';
+    return;
+  }
+
+  nextSlideStatus.textContent = `Page ${nextPage}`;
+  nextSlideCanvas.hidden = true;
+  nextSlideMessage.hidden = false;
+  nextSlideMessage.textContent = 'Loading preview...';
+
+  const pdfPage = await pdfDocument.getPage(nextPage);
+  if (requestId !== nextSlideRenderRequestId) return;
+
+  const viewport = pdfPage.getViewport({ scale: 1 });
+  const availableWidth = Math.max(nextSlidePreview.clientWidth - 2, 100);
+  const availableHeight = Math.max(nextSlidePreview.clientHeight - 2, 60);
+  const cssScale = Math.min(availableWidth / viewport.width, availableHeight / viewport.height);
+  const scaledViewport = pdfPage.getViewport({ scale: cssScale });
+  const pixelRatio = window.devicePixelRatio || 1;
+  const renderedCanvas = document.createElement('canvas');
+  const previewContext = renderedCanvas.getContext('2d', { alpha: false });
+
+  renderedCanvas.width = Math.floor(scaledViewport.width * pixelRatio);
+  renderedCanvas.height = Math.floor(scaledViewport.height * pixelRatio);
+  previewContext.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+  previewContext.fillStyle = '#ffffff';
+  previewContext.fillRect(0, 0, scaledViewport.width, scaledViewport.height);
+
+  await pdfPage.render({
+    canvasContext: previewContext,
+    viewport: scaledViewport
+  }).promise;
+
+  if (requestId !== nextSlideRenderRequestId) return;
+  nextSlideCanvas.width = renderedCanvas.width;
+  nextSlideCanvas.height = renderedCanvas.height;
+  nextSlideCanvas.style.width = `${Math.floor(scaledViewport.width)}px`;
+  nextSlideCanvas.style.height = `${Math.floor(scaledViewport.height)}px`;
+  nextSlideCanvas.getContext('2d', { alpha: false }).drawImage(renderedCanvas, 0, 0);
+  nextSlideMessage.hidden = true;
+  nextSlideCanvas.hidden = false;
 }
 
 async function refreshNotes() {
@@ -268,6 +333,10 @@ async function renderPage(page) {
   const requestId = ++renderRequestId;
   currentPage = Math.max(1, Math.min(page, pageCount));
   updatePresenterControls();
+  renderNextSlide().catch((error) => {
+    console.error('Could not render next slide preview:', error);
+    if (nextSlideMessage) nextSlideMessage.textContent = 'Preview unavailable';
+  });
   await waitForLayout();
 
   const pdfPage = await pdfDocument.getPage(currentPage);
@@ -323,6 +392,7 @@ async function loadPdf(payload) {
   applyLaserPointer({ visible: false });
   renderAnnotations();
   updatePresenterControls();
+  renderNextSlide().catch(console.error);
   showPresenterMessage(`Loading ${pdfName}...`, `Loading ${pdfName}...`);
 
   const pdfData = base64ToBytes(await window.pdfPresenter.readPdf(pdfPath));
