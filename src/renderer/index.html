@@ -50,25 +50,72 @@
         </div>
       </section>
       <aside class="notes-panel" aria-label="Page notes">
-        <div class="notes-header">
-          <h2>Notes</h2>
-          <span id="notesSaveStatus" class="notes-save-status">No PDF open</span>
-        </div>
-        <textarea
-          id="notesEditor"
-          class="notes-editor"
-          placeholder="Notes for this page"
-          spellcheck="true"
-          disabled
-        ></textarea>
-        <section class="next-slide-panel" aria-labelledby="nextSlideHeading">
-          <div class="next-slide-header">
-            <h2 id="nextSlideHeading">Next slide</h2>
-            <span id="nextSlideStatus" class="next-slide-status">No PDF open</span>
+        <section class="sidebar-panel notes-content-panel" data-collapsible-panel="notes" aria-labelledby="notesHeading">
+          <div class="panel-header notes-header">
+            <h2 id="notesHeading">Notes</h2>
+            <div class="panel-header-actions">
+              <span id="notesSaveStatus" class="notes-save-status">No PDF open</span>
+              <button class="panel-toggle" type="button" aria-label="Collapse Notes" aria-expanded="true">
+                <span class="panel-toggle-icon" aria-hidden="true"></span>
+              </button>
+            </div>
           </div>
-          <div id="nextSlidePreview" class="next-slide-preview">
-            <canvas id="nextSlideCanvas" hidden></canvas>
-            <p id="nextSlideMessage">No PDF open</p>
+          <div class="panel-body notes-body">
+            <textarea
+              id="notesEditor"
+              class="notes-editor"
+              placeholder="Notes for this page"
+              spellcheck="true"
+              disabled
+            ></textarea>
+          </div>
+        </section>
+        <section class="sidebar-panel next-slide-panel" data-collapsible-panel="next-slide" aria-labelledby="nextSlideHeading">
+          <div class="panel-header next-slide-header">
+            <h2 id="nextSlideHeading">Next slide</h2>
+            <div class="panel-header-actions">
+              <span id="nextSlideStatus" class="next-slide-status">No PDF open</span>
+              <button class="panel-toggle" type="button" aria-label="Collapse Next slide" aria-expanded="true">
+                <span class="panel-toggle-icon" aria-hidden="true"></span>
+              </button>
+            </div>
+          </div>
+          <div class="panel-body next-slide-body">
+            <div id="nextSlidePreview" class="next-slide-preview">
+              <canvas id="nextSlideCanvas" hidden></canvas>
+              <p id="nextSlideMessage">No PDF open</p>
+            </div>
+          </div>
+        </section>
+        <section class="sidebar-panel workshop-panel" data-collapsible-panel="workshop" aria-labelledby="workshopHeading">
+          <div class="panel-header workshop-header">
+            <h2 id="workshopHeading">Workshop timer</h2>
+            <div class="panel-header-actions">
+              <button id="disconnectWorkshopButton" class="panel-button" type="button" hidden>Disconnect</button>
+              <button class="panel-toggle" type="button" aria-label="Collapse Workshop timer" aria-expanded="true">
+                <span class="panel-toggle-icon" aria-hidden="true"></span>
+              </button>
+            </div>
+          </div>
+          <div class="panel-body workshop-body">
+            <div id="workshopConnectPrompt" class="workshop-connect-prompt">
+              <p>Connect to Workshop timer</p>
+              <button id="showWorkshopFormButton" class="panel-button primary" type="button">Connect</button>
+            </div>
+            <form id="workshopUrlForm" class="workshop-url-form" hidden>
+              <label for="workshopUrlInput">Workshop timer URL</label>
+              <div class="workshop-url-controls">
+                <input id="workshopUrlInput" type="url" placeholder="https://example.com/timer" required />
+                <button class="panel-button primary" type="submit">Load</button>
+              </div>
+              <p id="workshopUrlError" class="workshop-url-error" role="alert" hidden></p>
+            </form>
+            <iframe
+              id="workshopFrame"
+              class="workshop-frame"
+              title="Workshop timer"
+              hidden
+            ></iframe>
           </div>
         </section>
       </aside>

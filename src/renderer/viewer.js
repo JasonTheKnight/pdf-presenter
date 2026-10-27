@@ -30,6 +30,16 @@ const nextSlidePreview = document.getElementById('nextSlidePreview');
 const nextSlideCanvas = document.getElementById('nextSlideCanvas');
 const nextSlideMessage = document.getElementById('nextSlideMessage');
 const nextSlideStatus = document.getElementById('nextSlideStatus');
+const workshopConnectPrompt = document.getElementById('workshopConnectPrompt');
+const showWorkshopFormButton = document.getElementById('showWorkshopFormButton');
+const workshopUrlForm = document.getElementById('workshopUrlForm');
+const workshopUrlInput = document.getElementById('workshopUrlInput');
+const workshopUrlError = document.getElementById('workshopUrlError');
+const workshopFrame = document.getElementById('workshopFrame');
+const disconnectWorkshopButton = document.getElementById('disconnectWorkshopButton');
+
+const workshopUrlStorageKey = 'pdf-presenter.workshop-timer-url';
+const collapsedPanelsStorageKey = 'pdf-presenter.collapsed-panels';
 
 let pdfDocument = null;
 let pdfPath = null;
@@ -533,6 +543,103 @@ function bindPresenterControls() {
   });
 }
 
+function normalizeWorkshopUrl(value) {
+  const candidate = String(value || '').trim();
+  if (!candidate) throw new Error('Enter a URL to connect.');
+
+  const withProtocol = /^[a-z][a-z\d+.-]*:/i.test(candidate) ? candidate : `https://${candidate}`;
+  const url = new URL(withProtocol);
+  if (!['http:', 'https:'].includes(url.protocol)) {
+    throw new Error('Use an http or https URL.');
+  }
+
+  return url.href;
+}
+
+function connectWorkshopTimer(url) {
+  localStorage.setItem(workshopUrlStorageKey, url);
+  workshopFrame.src = url;
+  workshopFrame.hidden = false;
+  workshopConnectPrompt.hidden = true;
+  workshopUrlForm.hidden = true;
+  disconnectWorkshopButton.hidden = false;
+}
+
+function bindWorkshopTimer() {
+  if (!isPresenter || !workshopFrame) return;
+
+  const savedUrl = localStorage.getItem(workshopUrlStorageKey);
+  if (savedUrl) {
+    workshopUrlInput.value = savedUrl;
+    connectWorkshopTimer(savedUrl);
+  }
+
+  showWorkshopFormButton.addEventListener('click', () => {
+    workshopConnectPrompt.hidden = true;
+    workshopUrlForm.hidden = false;
+    workshopUrlInput.focus();
+  });
+
+  workshopUrlForm.addEventListener('submit', (event) => {
+    event.preventDefault();
+    try {
+      const url = normalizeWorkshopUrl(workshopUrlInput.value);
+      workshopUrlInput.value = url;
+      workshopUrlError.hidden = true;
+      connectWorkshopTimer(url);
+    } catch (error) {
+      workshopUrlError.textContent = error.message;
+      workshopUrlError.hidden = false;
+    }
+  });
+
+  disconnectWorkshopButton.addEventListener('click', () => {
+    localStorage.removeItem(workshopUrlStorageKey);
+    workshopFrame.removeAttribute('src');
+    workshopFrame.hidden = true;
+    disconnectWorkshopButton.hidden = true;
+    workshopUrlForm.hidden = true;
+    workshopConnectPrompt.hidden = false;
+  });
+}
+
+function bindCollapsiblePanels() {
+  if (!isPresenter) return;
+
+  const panels = Array.from(document.querySelectorAll('[data-collapsible-panel]'));
+  let collapsedPanels = new Set();
+
+  try {
+    collapsedPanels = new Set(JSON.parse(localStorage.getItem(collapsedPanelsStorageKey) || '[]'));
+  } catch {
+    localStorage.removeItem(collapsedPanelsStorageKey);
+  }
+
+  panels.forEach((panel) => {
+    const panelName = panel.dataset.collapsiblePanel;
+    const toggle = panel.querySelector('.panel-toggle');
+    const heading = panel.querySelector('h2')?.textContent || 'section';
+
+    const setCollapsed = (isCollapsed) => {
+      panel.classList.toggle('is-collapsed', isCollapsed);
+      toggle.setAttribute('aria-expanded', String(!isCollapsed));
+      toggle.setAttribute('aria-label', `${isCollapsed ? 'Expand' : 'Collapse'} ${heading}`);
+
+      if (isCollapsed) collapsedPanels.add(panelName);
+      else collapsedPanels.delete(panelName);
+
+      localStorage.setItem(collapsedPanelsStorageKey, JSON.stringify([...collapsedPanels]));
+
+      if (pdfDocument && !document.querySelector('[data-collapsible-panel="next-slide"]')?.classList.contains('is-collapsed')) {
+        requestAnimationFrame(() => renderNextSlide().catch(showOpenError));
+      }
+    };
+
+    setCollapsed(collapsedPanels.has(panelName));
+    toggle.addEventListener('click', () => setCollapsed(!panel.classList.contains('is-collapsed')));
+  });
+}
+
 window.addEventListener('keydown', (event) => {
   if (isEditableElement(event.target)) return;
 
@@ -592,6 +699,8 @@ window.pdfPresenter.onAnnotationsSync((nextAnnotations) => {
 
 if (isPresenter) {
   bindPresenterControls();
+  bindWorkshopTimer();
+  bindCollapsiblePanels();
   refreshDisplays();
   setActiveTool('pointer');
 }

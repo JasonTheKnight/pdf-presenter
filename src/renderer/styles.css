@@ -257,8 +257,85 @@ canvas {
   border-left: 1px solid #d7dce2;
   display: flex;
   flex-direction: column;
+  gap: 12px;
   min-width: 0;
-  padding: 16px;
+  padding: 12px;
+}
+
+.sidebar-panel {
+  background: #ffffff;
+  border: 1px solid #d7dce2;
+  border-radius: 8px;
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  padding: 12px;
+}
+
+.sidebar-panel.is-collapsed {
+  flex: 0 0 auto;
+}
+
+.sidebar-panel.is-collapsed .panel-header {
+  margin-bottom: 0;
+}
+
+.sidebar-panel.is-collapsed .panel-body {
+  display: none;
+}
+
+.panel-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.panel-header-actions {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+}
+
+.panel-toggle {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  color: #64707d;
+  cursor: pointer;
+  display: inline-flex;
+  flex: 0 0 auto;
+  height: 26px;
+  justify-content: center;
+  padding: 0;
+  width: 26px;
+}
+
+.panel-toggle:hover {
+  background: #eef3f8;
+  color: #20242a;
+}
+
+.panel-toggle:focus-visible {
+  box-shadow: 0 0 0 2px rgba(74, 107, 143, 0.25);
+  outline: none;
+}
+
+.panel-toggle-icon {
+  border-bottom: 2px solid currentColor;
+  border-right: 2px solid currentColor;
+  height: 7px;
+  transform: rotate(45deg) translate(-1px, -1px);
+  transition: transform 120ms ease;
+  width: 7px;
+}
+
+.is-collapsed .panel-toggle-icon {
+  transform: rotate(-45deg) translate(-1px, -1px);
 }
 
 .notes-header {
@@ -292,12 +369,16 @@ canvas {
   border-radius: 6px;
   color: #20242a;
   flex: 1;
-  font: 15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font: 12px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   min-height: 0;
   outline: none;
   padding: 12px;
   resize: none;
   width: 100%;
+}
+
+.notes-body {
+  min-height: 80px;
 }
 
 .notes-editor:focus {
@@ -311,8 +392,7 @@ canvas {
 }
 
 .next-slide-panel {
-  flex: 0 0 auto;
-  margin-top: 16px;
+  flex: 1 1 0;
 }
 
 .next-slide-header {
@@ -336,7 +416,7 @@ canvas {
 
 .next-slide-preview {
   align-items: center;
-  aspect-ratio: 16 / 9;
+  flex: 1;
   background: #2a2d31;
   border: 1px solid #b8c0cc;
   border-radius: 6px;
@@ -344,6 +424,7 @@ canvas {
   display: flex;
   justify-content: center;
   overflow: hidden;
+  min-height: 80px;
   width: 100%;
 }
 
@@ -356,6 +437,113 @@ canvas {
   margin: 0;
   padding: 12px;
   text-align: center;
+}
+
+.workshop-header {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.workshop-header h2 {
+  color: #20242a;
+  font-size: 16px;
+  font-weight: 650;
+  margin: 0;
+}
+
+.workshop-connect-prompt {
+  align-items: center;
+  color: #64707d;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 12px;
+  justify-content: center;
+  text-align: center;
+}
+
+.workshop-body {
+  min-height: 80px;
+}
+
+.workshop-connect-prompt p {
+  font-size: 13px;
+  margin: 0;
+}
+
+.panel-button {
+  background: #ffffff;
+  border: 1px solid #b8c0cc;
+  border-radius: 6px;
+  color: #20242a;
+  cursor: pointer;
+  font-size: 12px;
+  min-height: 30px;
+  padding: 0 10px;
+}
+
+.panel-button:hover {
+  background: #eef3f8;
+}
+
+.panel-button.primary {
+  background: #273f5f;
+  border-color: #273f5f;
+  color: #ffffff;
+}
+
+.panel-button.primary:hover {
+  background: #1e334f;
+}
+
+.workshop-url-form {
+  color: #333942;
+  font-size: 12px;
+  margin: auto 0;
+}
+
+.workshop-url-form label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.workshop-url-controls {
+  display: flex;
+  gap: 6px;
+}
+
+.workshop-url-controls input {
+  border: 1px solid #b8c0cc;
+  border-radius: 6px;
+  color: #20242a;
+  font: inherit;
+  min-width: 0;
+  padding: 7px 8px;
+  width: 100%;
+}
+
+.workshop-url-controls input:focus {
+  border-color: #6b7f99;
+  box-shadow: 0 0 0 2px rgba(74, 107, 143, 0.16);
+  outline: none;
+}
+
+.workshop-url-error {
+  color: #a92d27;
+  font-size: 11px;
+  margin: 6px 0 0;
+}
+
+.workshop-frame {
+  background: #ffffff;
+  border: 1px solid #b8c0cc;
+  border-radius: 6px;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
 }
 
 [hidden] {
@@ -383,6 +571,11 @@ canvas {
     border-top: 1px solid #d7dce2;
     height: 300px;
     padding: 12px;
+  }
+
+  .notes-content-panel,
+  .workshop-panel {
+    padding: 10px;
   }
 
   .next-slide-preview {
