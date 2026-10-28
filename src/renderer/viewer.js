@@ -30,6 +30,9 @@ const nextSlidePreview = document.getElementById('nextSlidePreview');
 const nextSlideCanvas = document.getElementById('nextSlideCanvas');
 const nextSlideMessage = document.getElementById('nextSlideMessage');
 const nextSlideStatus = document.getElementById('nextSlideStatus');
+const nextSlidePageControl = document.getElementById('nextSlidePageControl');
+const nextSlidePageInput = document.getElementById('nextSlidePageInput');
+const syncNextSlideButton = document.getElementById('syncNextSlideButton');
 const workshopConnectPrompt = document.getElementById('workshopConnectPrompt');
 const showWorkshopFormButton = document.getElementById('showWorkshopFormButton');
 const workshopUrlForm = document.getElementById('workshopUrlForm');
@@ -37,9 +40,14 @@ const workshopUrlInput = document.getElementById('workshopUrlInput');
 const workshopUrlError = document.getElementById('workshopUrlError');
 const workshopFrame = document.getElementById('workshopFrame');
 const disconnectWorkshopButton = document.getElementById('disconnectWorkshopButton');
+const presenterLayout = document.querySelector('.presenter-layout');
+const sidebarResizeHandle = document.getElementById('sidebarResizeHandle');
 
 const workshopUrlStorageKey = 'pdf-presenter.workshop-timer-url';
 const collapsedPanelsStorageKey = 'pdf-presenter.collapsed-panels';
+const sidebarWidthStorageKey = 'pdf-presenter.sidebar-width';
+const sidebarMinWidth = 240;
+const sidebarMaxWidth = 720;
 
 let pdfDocument = null;
 let pdfPath = null;
@@ -49,6 +57,7 @@ let pageCount = 0;
 let isPresenting = false;
 let renderRequestId = 0;
 let nextSlideRenderRequestId = 0;
+let selectedPreviewPage = null;
 let resizeTimer = null;
 let lastLaserPointer = null;
 let pendingLaserPointer = null;
@@ -121,25 +130,33 @@ async function renderNextSlide() {
   if (!isPresenter || !nextSlideCanvas || !nextSlidePreview) return;
 
   const requestId = ++nextSlideRenderRequestId;
-  const nextPage = currentPage + 1;
+  const nextPage = selectedPreviewPage ?? currentPage + 1;
 
   if (!pdfDocument) {
     nextSlideCanvas.hidden = true;
     nextSlideMessage.hidden = false;
     nextSlideMessage.textContent = 'No PDF open';
     nextSlideStatus.textContent = '';
+    nextSlideStatus.hidden = false;
+    nextSlidePageControl.hidden = true;
+    syncNextSlideButton.hidden = true;
     return;
   }
 
-  if (nextPage > pageCount) {
+  nextSlidePageInput.max = String(pageCount);
+  nextSlidePageInput.value = nextPage <= pageCount ? String(nextPage) : '';
+  nextSlidePageInput.placeholder = nextPage > pageCount ? '—' : '';
+  nextSlidePageControl.hidden = false;
+  syncNextSlideButton.hidden = selectedPreviewPage === null;
+  nextSlideStatus.hidden = true;
+
+  if (selectedPreviewPage === null && nextPage > pageCount) {
     nextSlideCanvas.hidden = true;
     nextSlideMessage.hidden = false;
     nextSlideMessage.textContent = 'End of presentation';
-    nextSlideStatus.textContent = '';
     return;
   }
 
-  nextSlideStatus.textContent = `Page ${nextPage}`;
   nextSlideCanvas.hidden = true;
   nextSlideMessage.hidden = false;
   nextSlideMessage.textContent = 'Loading preview...';
@@ -396,6 +413,7 @@ async function loadPdf(payload) {
   pdfPath = payload.path;
   pdfName = payload.name;
   currentPage = payload.page || 1;
+  selectedPreviewPage = null;
   pageCount = payload.pageCount || 0;
 
   if (slideSurface) slideSurface.hidden = true;
@@ -479,6 +497,24 @@ function bindPresenterControls() {
     if (!isUpdatingNotesEditor) {
       scheduleNoteSave();
     }
+  });
+  const selectPreviewPage = () => {
+    if (!pdfDocument) return;
+    const page = Number.parseInt(nextSlidePageInput.value, 10);
+    selectedPreviewPage = Math.max(1, Math.min(Number.isFinite(page) ? page : currentPage + 1, pageCount));
+    renderNextSlide().catch(showOpenError);
+  };
+  nextSlidePageInput.addEventListener('change', selectPreviewPage);
+  nextSlidePageInput.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      selectPreviewPage();
+      nextSlidePageInput.select();
+    }
+  });
+  syncNextSlideButton.addEventListener('click', () => {
+    selectedPreviewPage = null;
+    renderNextSlide().catch(showOpenError);
   });
 
   slideSurface.addEventListener('pointermove', (event) => {
@@ -640,6 +676,67 @@ function bindCollapsiblePanels() {
   });
 }
 
+function bindSidebarResize() {
+  if (!isPresenter || !presenterLayout || !sidebarResizeHandle) return;
+
+  const maximumWidth = () => Math.min(sidebarMaxWidth, Math.max(sidebarMinWidth, window.innerWidth * 0.55));
+  const clampWidth = (width) => Math.round(Math.max(sidebarMinWidth, Math.min(width, maximumWidth())));
+  const setWidth = (width, save = false) => {
+    const nextWidth = clampWidth(width);
+    presenterLayout.style.setProperty('--sidebar-width', `${nextWidth}px`);
+    sidebarResizeHandle.setAttribute('aria-valuenow', String(nextWidth));
+    sidebarResizeHandle.setAttribute('aria-valuemax', String(Math.round(maximumWidth())));
+    if (save) localStorage.setItem(sidebarWidthStorageKey, String(nextWidth));
+
+    if (pdfDocument) {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => renderPage(currentPage).catch(showOpenError), 60);
+    }
+  };
+
+  setWidth(Number(localStorage.getItem(sidebarWidthStorageKey)) || 320);
+
+  sidebarResizeHandle.addEventListener('pointerdown', (event) => {
+    if (event.button !== 0) return;
+
+    event.preventDefault();
+    sidebarResizeHandle.setPointerCapture(event.pointerId);
+    presenterLayout.classList.add('is-resizing');
+  });
+
+  sidebarResizeHandle.addEventListener('pointermove', (event) => {
+    if (!sidebarResizeHandle.hasPointerCapture(event.pointerId)) return;
+    setWidth(window.innerWidth - event.clientX);
+  });
+
+  const finishResize = (event) => {
+    if (!sidebarResizeHandle.hasPointerCapture(event.pointerId)) return;
+    sidebarResizeHandle.releasePointerCapture(event.pointerId);
+    presenterLayout.classList.remove('is-resizing');
+    const width = parseFloat(getComputedStyle(presenterLayout).getPropertyValue('--sidebar-width'));
+    setWidth(width, true);
+  };
+
+  sidebarResizeHandle.addEventListener('pointerup', finishResize);
+  sidebarResizeHandle.addEventListener('pointercancel', finishResize);
+  sidebarResizeHandle.addEventListener('keydown', (event) => {
+    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+
+    event.preventDefault();
+    const currentWidth = parseFloat(getComputedStyle(presenterLayout).getPropertyValue('--sidebar-width'));
+    const step = event.shiftKey ? 50 : 10;
+    if (event.key === 'Home') setWidth(sidebarMinWidth, true);
+    if (event.key === 'End') setWidth(maximumWidth(), true);
+    if (event.key === 'ArrowLeft') setWidth(currentWidth + step, true);
+    if (event.key === 'ArrowRight') setWidth(currentWidth - step, true);
+  });
+
+  window.addEventListener('resize', () => {
+    const width = parseFloat(getComputedStyle(presenterLayout).getPropertyValue('--sidebar-width'));
+    setWidth(width);
+  });
+}
+
 window.addEventListener('keydown', (event) => {
   if (isEditableElement(event.target)) return;
 
@@ -701,6 +798,7 @@ if (isPresenter) {
   bindPresenterControls();
   bindWorkshopTimer();
   bindCollapsiblePanels();
+  bindSidebarResize();
   refreshDisplays();
   setActiveTool('pointer');
 }

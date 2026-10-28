@@ -49,6 +49,16 @@
           <div id="laserPointer" class="laser-pointer" hidden></div>
         </div>
       </section>
+      <div
+        id="sidebarResizeHandle"
+        class="sidebar-resize-handle"
+        role="separator"
+        aria-label="Resize side panel"
+        aria-orientation="vertical"
+        aria-valuemin="240"
+        aria-valuemax="720"
+        tabindex="0"
+      ></div>
       <aside class="notes-panel" aria-label="Page notes">
         <section class="sidebar-panel notes-content-panel" data-collapsible-panel="notes" aria-labelledby="notesHeading">
           <div class="panel-header notes-header">
@@ -74,6 +84,13 @@
           <div class="panel-header next-slide-header">
             <h2 id="nextSlideHeading">Next slide</h2>
             <div class="panel-header-actions">
+              <label id="nextSlidePageControl" class="next-slide-page-control" hidden>
+                <span>Page</span>
+                <input id="nextSlidePageInput" type="number" min="1" step="1" aria-label="Preview page" />
+              </label>
+              <button id="syncNextSlideButton" class="panel-button next-slide-sync" type="button" hidden>
+                Sync to main
+              </button>
               <span id="nextSlideStatus" class="next-slide-status">No PDF open</span>
               <button class="panel-toggle" type="button" aria-label="Collapse Next slide" aria-expanded="true">
                 <span class="panel-toggle-icon" aria-hidden="true"></span>
